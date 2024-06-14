@@ -1,7 +1,7 @@
 import os
 import numpy as np
 
-os.chdir("path\to\folder")
+os.chdir("path/to/folder")
 
 print('\nShor Code')
 print('--------------')
@@ -14,7 +14,7 @@ from qiskit.visualization import plot_histogram
 #from qiskit.tools.monitor import job_monitor
 
 # Import from Qiskit Aer noise module
-from qiskit_aer.noise import (NoiseModel, QuantumError, ReadoutError,
+from qiskit_aer.noise import (NoiseModel, QuantumError, ReadoutError, amplitude_damping_error,
                               pauli_error, depolarizing_error, thermal_relaxation_error)
 
 #IBMQ.enable_account(‘ENTER API KEY HERE')
@@ -195,7 +195,7 @@ plot_histogram(counts_thermal)
 # Run the noisy simulation
 
 # Transpile circuit for noisy basis gates
-circ_tthermal = sim_thermal.run(circuit, shot=1000)
+circ_tthermal = sim_thermal.run(simpl_circuit, shot=1000)
 
 
 # Run and get counts
@@ -220,3 +220,120 @@ plot_histogram(counts_thermal)
 #Save the histogram
 fig = plot_histogram(counts_thermal)
 fig.savefig('corrected_shor_noisy_env_output_histogram.png', format='png')
+
+
+
+T1 = 25.0
+gate_time = 0.1
+param_amp = 1-np.exp(-gate_time/T1)
+
+error = amplitude_damping_error(param_amp)
+
+amplitude_damping_noise_model = NoiseModel()
+amplitude_damping_noise_model.add_all_qubit_quantum_error(error, 'h')
+
+# Run the noisy simulation
+sim_amplitude_damping = AerSimulator(noise_model= amplitude_damping_noise_model)
+
+
+circ_tthermal = sim_amplitude_damping.run(simpl_circuit, shot=1000)
+
+
+# Run and get counts
+result_thermal = circ_tthermal.result()
+counts_thermal = result_thermal.get_counts()
+
+# Plot noisy output
+plot_histogram(counts_thermal)
+
+#Save the histogram
+fig = plot_histogram(counts_thermal)
+fig.savefig('notcorrected_shor_amplitude_damping_noisy_env_output_histogram.png', format='png')
+
+
+# Run and get counts
+result_thermal = sim_amplitude_damping.run(circuit).result()
+counts_thermal = result_thermal.get_counts()
+
+# Plot noisy output
+plot_histogram(counts_thermal)
+
+#Save the histogram
+fig = plot_histogram(counts_thermal)
+fig.savefig('corrected_shor_amplitude_damping_noisy_env_output_histogram.png', format='png')
+
+
+#Construct the error for depolarizing error
+depolarizing_error = depolarizing_error(0.1, 1) # 0.1 is the probability of error, 1 is the number of qubits
+
+#Building noise model for depolarizing error
+depolarizing_noise_model = NoiseModel()
+depolarizing_noise_model.add_all_qubit_quantum_error(depolarizing_error, ['x', 'y', 'z'])
+
+sim_depolarizing = AerSimulator(noise_model= depolarizing_noise_model)
+
+
+# Run the noisy simulation
+circ_depolarizing = sim_depolarizing.run(simpl_circuit, shot=1000)
+
+
+# Run and get counts
+result_depolarizing = circ_depolarizing.result()
+counts_depolarizing = result_depolarizing.get_counts()
+
+# Plot noisy output
+plot_histogram(counts_depolarizing)
+
+#Save the histogram
+fig = plot_histogram(counts_depolarizing)
+fig.savefig('notcorrected_shor_depolarizing_noisy_env_output_histogram.png', format='png')
+
+
+# Run and get counts
+result_depolarizing = sim_depolarizing.run(circuit, shot=1000).result()
+counts_depolarizing = result_depolarizing.get_counts()
+
+# Plot noisy output
+plot_histogram(result_depolarizing)
+
+#Save the histogram
+fig = plot_histogram(result_depolarizing)
+fig.savefig('corrected_shor_depolarizing_noisy_env_output_histogram.png', format='png')
+
+
+#Combining thermal_noise, depolarization and amplitude damping noise models
+combined_noise_instructions = noise_thermal.noise_instructions + depolarizing_noise_model.noise_instructions + amplitude_damping_noise_model.noise_instructions
+combined_noise_model = NoiseModel(combined_noise_instructions)
+
+
+sim_combined = AerSimulator(noise_model= combined_noise_model)
+
+
+# Run the noisy simulation
+circ_combined = sim_combined.run(simpl_circuit, shot=1000)
+
+
+# Run and get counts
+result_combined = circ_combined.result()
+counts_combined = result_depolarizing.get_counts()
+
+# Plot noisy output
+plot_histogram(counts_combined)
+
+#Save the histogram
+fig = plot_histogram(counts_combined)
+fig.savefig('notcorrected_shor_combined_noisy_env_output_histogram.png', format='png')
+
+
+# Run and get counts
+counts_combined = circ_combined.run(circuit, shot=1000).result()
+counts_combined = result_depolarizing.get_counts()
+
+# Plot noisy output
+plot_histogram(counts_combined)
+
+#Save the histogram
+fig = plot_histogram(counts_combined)
+fig.savefig('corrected_shor_combined_noisy_env_output_histogram.png', format='png')
+
+
